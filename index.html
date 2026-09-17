@@ -39,7 +39,7 @@ body{padding:32px 20px}
 .vr-vignette{position:absolute;inset:0;background:radial-gradient(circle at center, transparent 0%, rgba(232,222,255,.08) 22%, rgba(16,8,18,.68) 70%, rgba(8,3,14,.9) 100%);mix-blend-mode:screen}
 .vr-mode #vrOverlay{display:block}
 .vr-mode body{background:radial-gradient(circle at center, rgba(79,44,122,.72), rgba(11,5,20,.96) 45%, rgba(5,3,10,.98) 100%)}
-.vr-mode .container{position:relative;z-index:2;max-width:860px;padding:18px 18px 30px;border:1px solid rgba(237,226,255,.18);background:linear-gradient(180deg, rgba(25,16,40,.38), rgba(15,10,25,.16));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:30px;box-shadow:0 30px 80px rgba(53,22,87,.52), inset 0 1px 0 rgba(255,255,255,.05);transform:perspective(1600px) rotateX(7deg) rotateY(-8deg) translateZ(120px);transform-style:preserve-3d;animation:vrPanelFloat 8s ease-in-out infinite alternate;}
+.vr-mode .container{display:none}
 .vr-mode .tabs{margin-bottom:18px;position:relative;z-index:5}
 .vr-mode .card{background:linear-gradient(180deg, rgba(31,22,46,.76), rgba(15,11,24,.74));border-color:rgba(230,210,255,.15);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transform:translateZ(28px) rotateX(-4deg);box-shadow:0 20px 40px rgba(32,16,46,.34), inset 0 1px 0 rgba(255,255,255,.04)}
 .vr-mode .tab-content{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
@@ -523,7 +523,8 @@ var vrModeActive=false;
 var vrTunnelFrame=null;
 var vrAudio=null;
 var vrXrSession=null;
-var vrGl=null,vrXrProgram=null,vrXrSpace=null,vrXrScene=null;
+var vrGl=null,vrXrProgram=null,vrXrTextureProgram=null,vrXrSpace=null,vrXrScene=null;
+var vrPanelTexture=null,vrMatrixTexture=null,vrPanelTextureReady=false,vrMatrixAtlasChars='01{}[]<>/\\*+-=ABCDEFGHIJKLMNOPQRSTUVWXYZ',vrMatrixAtlasColumns=8;
 var vrPanelOffset={x:0,y:0,z:0};
 var vrPanelDrag=null;
 var vrXrEnding=false;
@@ -589,6 +590,7 @@ function switchTab(ev,name){
     panel.classList.remove('active','is-entering','is-leaving','reverse');
   });
   target.classList.add('active');
+  if(vrModeActive) setTimeout(vrMakePanelTexture,60);
 }
 
 function initVrTunnel(){
@@ -711,7 +713,29 @@ function initVrWebGL(){
   vrGl.attachShader(program,shader(vrGl.FRAGMENT_SHADER,'precision mediump float;varying vec4 color;void main(){gl_FragColor=color;}'));
   vrGl.linkProgram(program);if(!vrGl.getProgramParameter(program,vrGl.LINK_STATUS)) throw new Error(vrGl.getProgramInfoLog(program));
   vrXrProgram={program:program,p:vrGl.getAttribLocation(program,'p'),c:vrGl.getAttribLocation(program,'c'),vp:vrGl.getUniformLocation(program,'vp'),pb:vrGl.createBuffer(),cb:vrGl.createBuffer(),started:performance.now(),glyphs:[]};
-  for(var i=0;i<240;i++) vrXrProgram.glyphs.push({x:(Math.random()-.5)*9,y:(Math.random()-.5)*6,z:-2-Math.random()*40,v:1+Math.random()*3});
+  for(var i=0;i<240;i++) vrXrProgram.glyphs.push({x:(Math.random()-.5)*9,y:(Math.random()-.5)*6,z:-2-Math.random()*40,v:1+Math.random()*3,charIndex:Math.floor(Math.random()*vrMatrixAtlasChars.length)});
+  var textured=vrGl.createProgram();
+  vrGl.attachShader(textured,shader(vrGl.VERTEX_SHADER,'attribute vec3 p;attribute vec2 uv;uniform mat4 vp;varying vec2 texCoord;void main(){gl_Position=vp*vec4(p,1.0);texCoord=uv;}'));
+  vrGl.attachShader(textured,shader(vrGl.FRAGMENT_SHADER,'precision mediump float;uniform sampler2D tex;uniform float opacity;varying vec2 texCoord;void main(){vec4 c=texture2D(tex,texCoord);gl_FragColor=vec4(c.rgb,c.a*opacity);}'));
+  vrGl.linkProgram(textured);if(!vrGl.getProgramParameter(textured,vrGl.LINK_STATUS)) throw new Error(vrGl.getProgramInfoLog(textured));
+  vrXrTextureProgram={program:textured,p:vrGl.getAttribLocation(textured,'p'),uv:vrGl.getAttribLocation(textured,'uv'),vp:vrGl.getUniformLocation(textured,'vp'),opacity:vrGl.getUniformLocation(textured,'opacity'),pb:vrGl.createBuffer(),ub:vrGl.createBuffer()};
+  vrMatrixTexture=vrGl.createTexture();
+  vrGl.bindTexture(vrGl.TEXTURE_2D,vrMatrixTexture);vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MIN_FILTER,vrGl.LINEAR);vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MAG_FILTER,vrGl.LINEAR);vrGl.texImage2D(vrGl.TEXTURE_2D,0,vrGl.RGBA,1,1,0,vrGl.RGBA,vrGl.UNSIGNED_BYTE,new Uint8Array([180,100,255,255]));
+  var matrixCanvas=document.createElement('canvas'),matrixContext=matrixCanvas.getContext('2d');matrixCanvas.width=512;matrixCanvas.height=512;matrixContext.clearRect(0,0,512,512);matrixContext.font='bold 48px monospace';
+  for(var atlasIndex=0;atlasIndex<vrMatrixAtlasChars.length;atlasIndex++){var atlasColumn=atlasIndex%vrMatrixAtlasColumns,atlasRow=Math.floor(atlasIndex/vrMatrixAtlasColumns);matrixContext.fillStyle='rgba(245,226,255,.95)';matrixContext.fillText(vrMatrixAtlasChars[atlasIndex],atlasColumn*64+12,atlasRow*64+48)}
+  vrGl.bindTexture(vrGl.TEXTURE_2D,vrMatrixTexture);vrGl.texImage2D(vrGl.TEXTURE_2D,0,vrGl.RGBA,vrGl.RGBA,vrGl.UNSIGNED_BYTE,matrixCanvas);
+  vrMakePanelTexture();
+}
+
+function vrMakePanelTexture(){
+  var source=document.querySelector('.container');if(!source || !vrGl)return;
+  var clone=source.cloneNode(true),styles='';
+  for(var i=0;i<document.styleSheets.length;i++){try{styles+=Array.prototype.map.call(document.styleSheets[i].cssRules,function(rule){return rule.cssText}).join('')}catch(err){}}
+  clone.querySelectorAll('[id]').forEach(function(node){node.removeAttribute('id')});
+  clone.querySelectorAll('input,textarea,select,button,a').forEach(function(node){node.setAttribute('disabled','disabled');node.style.pointerEvents='none'});
+  var markup=new XMLSerializer().serializeToString(clone).replace(/xmlns="[^"]+"/g,'');
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="980" height="900"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><style>'+styles+'</style><div class="vr-mode">'+markup+'</div></div></foreignObject></svg>';
+  var image=new Image();image.onload=function(){var canvas=document.createElement('canvas');canvas.width=980;canvas.height=900;var ctx=canvas.getContext('2d');ctx.fillStyle='#0b0616';ctx.fillRect(0,0,980,900);ctx.drawImage(image,0,0);vrGl.bindTexture(vrGl.TEXTURE_2D,vrPanelTexture=vrGl.createTexture());vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MIN_FILTER,vrGl.LINEAR);vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MAG_FILTER,vrGl.LINEAR);vrGl.texImage2D(vrGl.TEXTURE_2D,0,vrGl.RGBA,vrGl.RGBA,vrGl.UNSIGNED_BYTE,canvas);vrPanelTextureReady=true};image.onerror=function(){var canvas=document.createElement('canvas');canvas.width=980;canvas.height=900;var ctx=canvas.getContext('2d');ctx.fillStyle='#180f2b';ctx.fillRect(0,0,980,900);ctx.fillStyle='#f8f1ff';ctx.font='bold 34px sans-serif';ctx.fillText('FluxFab Tools V2',42,72);ctx.fillStyle='#c995ff';ctx.font='bold 18px monospace';ctx.fillText(document.querySelector('.tab-btn.active')?.textContent||'Generate',42,132);ctx.strokeStyle='#c995ff';ctx.lineWidth=3;ctx.strokeRect(28,28,924,844);vrGl.bindTexture(vrGl.TEXTURE_2D,vrPanelTexture=vrGl.createTexture());vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MIN_FILTER,vrGl.LINEAR);vrGl.texParameteri(vrGl.TEXTURE_2D,vrGl.TEXTURE_MAG_FILTER,vrGl.LINEAR);vrGl.texImage2D(vrGl.TEXTURE_2D,0,vrGl.RGBA,vrGl.RGBA,vrGl.UNSIGNED_BYTE,canvas);vrPanelTextureReady=true};image.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
 
 function vrLine(vertices,colors,a,b,color){
@@ -719,14 +743,26 @@ function vrLine(vertices,colors,a,b,color){
   colors.push(color[0],color[1],color[2],color[3],color[0],color[1],color[2],color[3]);
 }
 
-function vrDraw(vertices,colors,viewMatrix,projectionMatrix){
+function vrTriangle(vertices,colors,a,b,c,color){
+  vertices.push(a[0],a[1],a[2],b[0],b[1],b[2],c[0],c[1],c[2]);
+  colors.push(color[0],color[1],color[2],color[3],color[0],color[1],color[2],color[3],color[0],color[1],color[2],color[3]);
+}
+
+function vrDraw(vertices,colors,viewMatrix,projectionMatrix,mode){
   var gl=vrGl,s=vrXrProgram;
   var vp=new Float32Array(16);
   for(var col=0;col<4;col++) for(var row=0;row<4;row++) vp[col*4+row]=projectionMatrix[row]*viewMatrix[col*4]+projectionMatrix[4+row]*viewMatrix[col*4+1]+projectionMatrix[8+row]*viewMatrix[col*4+2]+projectionMatrix[12+row]*viewMatrix[col*4+3];
   gl.uniformMatrix4fv(s.vp,false,vp);
   gl.bindBuffer(gl.ARRAY_BUFFER,s.pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.p);gl.vertexAttribPointer(s.p,3,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ARRAY_BUFFER,s.cb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.c);gl.vertexAttribPointer(s.c,4,gl.FLOAT,false,0,0);
-  gl.drawArrays(gl.LINES,0,vertices.length/3);
+  gl.drawArrays(mode||gl.LINES,0,vertices.length/3);
+}
+
+function vrDrawTexture(vertices,uvs,texture,viewMatrix,projectionMatrix,opacity){
+  var gl=vrGl,s=vrXrTextureProgram,vp=new Float32Array(16);
+  for(var col=0;col<4;col++) for(var row=0;row<4;row++) vp[col*4+row]=projectionMatrix[row]*viewMatrix[col*4]+projectionMatrix[4+row]*viewMatrix[col*4+1]+projectionMatrix[8+row]*viewMatrix[col*4+2]+projectionMatrix[12+row]*viewMatrix[col*4+3];
+  gl.useProgram(s.program);gl.uniformMatrix4fv(s.vp,false,vp);gl.uniform1f(s.opacity,opacity);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,texture);gl.uniform1i(gl.getUniformLocation(s.program,'tex'),0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,s.pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.p);gl.vertexAttribPointer(s.p,3,gl.FLOAT,false,0,0);gl.bindBuffer(gl.ARRAY_BUFFER,s.ub);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(uvs),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.uv);gl.vertexAttribPointer(s.uv,2,gl.FLOAT,false,0,0);gl.drawArrays(gl.TRIANGLES,0,vertices.length/3);
 }
 
 function vrControllerRay(frame,inputSource){
@@ -757,20 +793,19 @@ function vrRenderFrame(time,frame){
   var pose=frame.getViewerPose(vrXrSpace);if(!pose)return;
   var gl=vrGl,s=vrXrProgram,t=(time-s.started)/1000;
   if(vrPanelDrag){var drag=vrControllerRay(frame,vrPanelDrag);if(drag){vrPanelOffset.x=drag.x;vrPanelOffset.y=drag.y-1;vrPanelOffset.z=Math.max(-1,Math.min(1,drag.z+3))}}
-  gl.bindFramebuffer(gl.FRAMEBUFFER,vrXrSession.renderState.baseLayer.framebuffer);gl.useProgram(s.program);gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.01,.002,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-  var tunnel=[],tunnelColor=[],matrix=[],matrixColor=[],panel=[],panelColor=[],controllers=[],controllerColor=[];
+  gl.bindFramebuffer(gl.FRAMEBUFFER,vrXrSession.renderState.baseLayer.framebuffer);gl.useProgram(s.program);gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.035,.006,.09,1);gl.enable(gl.SCISSOR_TEST);
+  var tunnel=[],tunnelColor=[],tunnelSurface=[],tunnelSurfaceColor=[],matrix=[],matrixColor=[],panel=[],panelColor=[],controllers=[],controllerColor=[],matrixQuads=[],matrixUvs=[];
   for(var ring=0;ring<64;ring++){
-    var z=-1.5-((ring*1.05+t*22)%44),cx=Math.sin(t*2+ring*.18)*.8,cy=Math.cos(t*1.6+ring*.14)*.5;
-    for(var side=0;side<32;side++){var a=side*Math.PI*2/32,b=(side+1)*Math.PI*2/32;vrLine(tunnel,tunnelColor,[cx+Math.cos(a)*3.5,cy+Math.sin(a)*2.2,z],[cx+Math.cos(b)*3.5,cy+Math.sin(b)*2.2,z],[.65,.3,1,.12+(1-ring/64)*.7])}
+    var z=-1.5-((ring*1.05+t*22)%44),nextZ=z-1.05,cx=Math.sin(t*2+ring*.18)*.8,cy=Math.cos(t*1.6+ring*.14)*.5,nextCx=Math.sin(t*2+(ring+1)*.18)*.8,nextCy=Math.cos(t*1.6+(ring+1)*.14)*.5;
+    for(var side=0;side<32;side++){var a=side*Math.PI*2/32,b=(side+1)*Math.PI*2/32;var p1=[cx+Math.cos(a)*3.5,cy+Math.sin(a)*2.2,z],p2=[cx+Math.cos(b)*3.5,cy+Math.sin(b)*2.2,z],p3=[nextCx+Math.cos(b)*3.5,nextCy+Math.sin(b)*2.2,nextZ],p4=[nextCx+Math.cos(a)*3.5,nextCy+Math.sin(a)*2.2,nextZ];var fog=.04+(1-ring/64)*.3;vrTriangle(tunnelSurface,tunnelSurfaceColor,p1,p2,p3,[.35,.08,.72,fog]);vrTriangle(tunnelSurface,tunnelSurfaceColor,p1,p3,p4,[.35,.08,.72,fog])}
   }
   for(var g=0;g<s.glyphs.length;g++){var glyph=s.glyphs[g];glyph.z-=glyph.v*.02;if(glyph.z<-42)glyph.z=-2-Math.random()*5;var alpha=Math.max(.08,Math.min(.65,(-glyph.z)/18));vrLine(matrix,matrixColor,[glyph.x,glyph.y,glyph.z],[glyph.x,glyph.y+.2,glyph.z],[.9,.75,1,alpha]);if(g%3===0)vrLine(matrix,matrixColor,[glyph.x,glyph.y+.1,glyph.z],[glyph.x+.1,glyph.y+.1,glyph.z],[.7,.4,1,alpha*.7])}
   for(var inputIndex=0;inputIndex<vrXrSession.inputSources.length;inputIndex++){var inputRay=vrControllerRay(frame,vrXrSession.inputSources[inputIndex]);if(inputRay)vrLine(controllers,controllerColor,[inputRay.x,inputRay.y,inputRay.z],[inputRay.x+inputRay.dx*3,inputRay.y+inputRay.dy*3,inputRay.z+inputRay.dz*3],[.95,.7,1,.9])}
-  function box(x,y,w,h,z,color){var a=[x,y,z],b=[x+w,y,z],c=[x+w,y-h,z],d=[x,y-h,z];vrLine(panel,panelColor,a,b,color);vrLine(panel,panelColor,b,c,color);vrLine(panel,panelColor,c,d,color);vrLine(panel,panelColor,d,a,color)}
-  var px=vrPanelOffset.x,py=vrPanelOffset.y,pz=-2.9+vrPanelOffset.z;box(px-2.65,py+1.45,5.3,3.15,pz,[.75,.48,1,.8]);
-  var active=Math.max(0,Array.prototype.indexOf.call(document.querySelectorAll('.tab-content'),document.querySelector('.tab-content.active')));
-  for(var tab=0;tab<8;tab++)box(px-2.3+tab*1.02,py+1.05,.9,.34,pz-.01-tab*.01,[.85,.65,1,tab===active?.95:.3]);
-  box(px-2.25,py+.35,4.5,1.42,pz-.04,[.95,.82,1,.65]);box(px-2.02,py+.08,1.8,.05,pz-.06,[1,.9,1,.8]);box(px-2.02,py-.18,3.2,.05,pz-.06,[.8,.55,1,.55]);box(px-2.02,py-.44,2.5,.05,pz-.06,[.8,.55,1,.45]);
-  for(var viewIndex=0;viewIndex<pose.views.length;viewIndex++){var view=pose.views[viewIndex],vp=vrXrSession.renderState.baseLayer.getViewport(view);gl.viewport(vp.x,vp.y,vp.width,vp.height);vrDraw(tunnel,tunnelColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(matrix,matrixColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(panel,panelColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(controllers,controllerColor,view.transform.inverse.matrix,view.projectionMatrix)}
+  var px=vrPanelOffset.x,py=vrPanelOffset.y,pz=-2.9+vrPanelOffset.z;
+  for(var glyphIndex=0;glyphIndex<s.glyphs.length;glyphIndex++){var g=s.glyphs[glyphIndex],gw=.16,gh=.22,atlasColumn=g.charIndex%vrMatrixAtlasColumns,atlasRow=Math.floor(g.charIndex/vrMatrixAtlasColumns),u0=atlasColumn/vrMatrixAtlasColumns,v0=atlasRow/Math.ceil(vrMatrixAtlasChars.length/vrMatrixAtlasColumns),u1=(atlasColumn+1)/vrMatrixAtlasColumns,v1=(atlasRow+1)/Math.ceil(vrMatrixAtlasChars.length/vrMatrixAtlasColumns);matrixQuads.push(g.x-gw,g.y+gh,g.z,g.x+gw,g.y+gh,g.z,g.x+gw,g.y-gh,g.z,g.x-gw,g.y+gh,g.z,g.x+gw,g.y-gh,g.z,g.x-gw,g.y-gh,g.z);matrixUvs.push(u0,v0,u1,v0,u1,v1,u0,v0,u1,v1,u0,v1)}
+  var panelVertices=[px-2.65,py+1.45,pz,px+2.65,py+1.45,pz,px+2.65,py-1.7,pz,px-2.65,py+1.45,pz,px+2.65,py-1.7,pz,px-2.65,py-1.7,pz],panelUvs=[0,0,1,0,1,1,0,0,1,1,0,1];
+  for(var viewIndex=0;viewIndex<pose.views.length;viewIndex++){var view=pose.views[viewIndex],vp=vrXrSession.renderState.baseLayer.getViewport(view);gl.viewport(vp.x,vp.y,vp.width,vp.height);gl.scissor(vp.x,vp.y,vp.width,vp.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);vrDraw(tunnelSurface,tunnelSurfaceColor,view.transform.inverse.matrix,view.projectionMatrix,gl.TRIANGLES);vrDraw(controllers,controllerColor,view.transform.inverse.matrix,view.projectionMatrix);vrDrawTexture(matrixQuads,matrixUvs,vrMatrixTexture,view.transform.inverse.matrix,view.projectionMatrix,.95);if(vrPanelTextureReady)vrDrawTexture(panelVertices,panelUvs,vrPanelTexture,view.transform.inverse.matrix,view.projectionMatrix,1)}
+  gl.disable(gl.SCISSOR_TEST);
   vrXrSession.requestAnimationFrame(vrRenderFrame);
 }
 
