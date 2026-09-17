@@ -34,10 +34,21 @@ html,body{background:
 body{padding:32px 20px}
 .container{max-width:980px;margin:0 auto;position:relative}
 .container::before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:100%;pointer-events:none;background:linear-gradient(135deg,rgba(201,149,255,.07),transparent 35%,transparent 65%,rgba(168,107,255,.05));filter:blur(8px)}
+#vrOverlay{position:fixed;inset:0;display:none;z-index:0;pointer-events:none;overflow:hidden;background:radial-gradient(circle at center, rgba(187,160,255,.16), rgba(18,9,29,.06) 32%, rgba(6,3,10,.86) 100%)}
+#vrOverlay canvas{position:absolute;inset:0;width:100%;height:100%;display:block;filter:saturate(1.35) contrast(1.2) brightness(1.2)}
+.vr-vignette{position:absolute;inset:0;background:radial-gradient(circle at center, transparent 0%, rgba(232,222,255,.08) 22%, rgba(16,8,18,.68) 70%, rgba(8,3,14,.9) 100%);mix-blend-mode:screen}
+.vr-mode #vrOverlay{display:block}
+.vr-mode body{background:radial-gradient(circle at center, rgba(79,44,122,.72), rgba(11,5,20,.96) 45%, rgba(5,3,10,.98) 100%)}
+.vr-mode .container{position:relative;z-index:2;max-width:860px;padding:18px 18px 30px;border:1px solid rgba(237,226,255,.18);background:linear-gradient(180deg, rgba(25,16,40,.38), rgba(15,10,25,.16));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:30px;box-shadow:0 30px 80px rgba(53,22,87,.52), inset 0 1px 0 rgba(255,255,255,.05);transform:perspective(1600px) rotateX(7deg) rotateY(-8deg) translateZ(120px);transform-style:preserve-3d;animation:vrPanelFloat 8s ease-in-out infinite alternate;}
+.vr-mode .tabs{margin-bottom:18px;position:relative;z-index:5}
+.vr-mode .card{background:linear-gradient(180deg, rgba(31,22,46,.76), rgba(15,11,24,.74));border-color:rgba(230,210,255,.15);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transform:translateZ(28px) rotateX(-4deg);box-shadow:0 20px 40px rgba(32,16,46,.34), inset 0 1px 0 rgba(255,255,255,.04)}
+.vr-mode .tab-content{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+@keyframes vrPanelFloat{0%{transform:perspective(1600px) rotateX(7deg) rotateY(-8deg) translateZ(120px) translateY(0)}50%{transform:perspective(1600px) rotateX(9deg) rotateY(-6deg) translateZ(140px) translateY(-8px)}100%{transform:perspective(1600px) rotateX(6deg) rotateY(-9deg) translateZ(130px) translateY(5px)}}
 @keyframes silver{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .silver{background:linear-gradient(90deg,#fff8ff,#e6d5ff,#d0b1ff,#a86bff,#fff8ff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:silver 7s ease-in-out infinite}
 h1{font-size:34px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;position:relative;z-index:1;text-shadow:0 0 22px rgba(201,149,255,.2)}
 .subtitle{color:var(--muted);font-size:13px;margin-bottom:28px;position:relative;z-index:1;letter-spacing:.18px}
+.back-v1{margin-bottom:22px;text-decoration:none}
 .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;position:relative;z-index:1}
 .tab-btn{padding:10px 14px;font-size:12.5px;font-weight:600;background:rgba(24,15,41,.75);color:var(--muted);border:1px solid rgba(206,185,255,.12);border-radius:10px;cursor:pointer;transition:all .2s ease;font-family:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
 .tab-btn:hover{background:rgba(37,27,56,.9);color:var(--text);border-color:rgba(201,149,255,.45);transform:translateY(-1px)}
@@ -50,6 +61,14 @@ h1{font-size:34px;font-weight:800;letter-spacing:-1px;margin-bottom:8px;position
 .tab-content.is-entering{position:absolute;opacity:0;visibility:visible;pointer-events:none;transform:translate3d(18%,0,0) scale(.985);filter:blur(10px)}
 .tab-content.is-entering.reverse{transform:translate3d(-18%,0,0) scale(.985)}
 .tab-content.is-entering.active{opacity:1;visibility:visible;pointer-events:auto;transform:translate3d(0,0,0) scale(1);filter:blur(0);transition:transform 820ms cubic-bezier(.15,.85,.28,1),opacity 480ms ease,filter 480ms ease;z-index:3}
+.vr-mode .tab-shell{perspective:1600px;perspective-origin:center center}
+.vr-mode .tab-content{position:absolute;left:0;right:0;top:0;bottom:auto;transform-origin:50% 120%;transform-style:preserve-3d}
+.vr-mode .tab-content.active{transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg) scale(1);opacity:1;filter:blur(0);box-shadow:0 24px 50px rgba(41,18,65,.42)}
+.vr-mode .tab-content.is-leaving{transform:translate3d(0,28px,0) rotateX(-20deg) rotateY(12deg) scale(.975);opacity:.5;filter:blur(2px)}
+.vr-mode .tab-content.is-leaving.reverse{transform:translate3d(0,30px,0) rotateX(18deg) rotateY(-12deg) scale(.975)}
+.vr-mode .tab-content.is-entering{transform:translate3d(0,-32px,120px) rotateX(14deg) rotateY(-18deg) scale(.96);opacity:0;filter:blur(5px)}
+.vr-mode .tab-content.is-entering.reverse{transform:translate3d(0,-32px,120px) rotateX(-14deg) rotateY(18deg) scale(.96)}
+.vr-mode .tab-content.is-entering.active{transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg) scale(1);opacity:1;filter:blur(0)}
 .card{background:linear-gradient(180deg, rgba(26,18,43,.96), rgba(15,11,24,.94));border:1px solid rgba(206,185,255,.12);border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.02)}
 .card-title{font-size:15px;font-weight:700;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(206,185,255,.12);letter-spacing:.2px}
 .form-group{margin-bottom:14px}
@@ -112,9 +131,14 @@ input[type="checkbox"]:checked+.toggle-slider::after{transform:translateX(18px);
 </style>
 </head>
 <body>
+<div id="vrOverlay" aria-hidden="true">
+  <canvas id="vrTunnelCanvas"></canvas>
+  <div class="vr-vignette"></div>
+</div>
 <div class="container">
 <h1><span class="silver">FluxFab Tools V2</span></h1>
 <p class="subtitle">Revamped By FLUXTECH LLC</p>
+<a class="btn btn-secondary back-v1" href="https://fluxfab-tools.pages.dev/">Back to V1</a>
 
 <div class="tabs">
 <button class="tab-btn active" onclick="switchTab(event,'generate')">Generate</button>
@@ -494,49 +518,312 @@ var currentSgdOp='getSharedGroup';
 var lastDlcResponse=null,lastDlcRequestType=null,lastDlcTitleId=null;
 var photonSpamming=false,photonPollInterval=null,photonStartTime=null;
 
+var metaTabClickCount=0;
+var vrModeActive=false;
+var vrTunnelFrame=null;
+var vrAudio=null;
+var vrXrSession=null;
+var vrGl=null,vrXrProgram=null,vrXrSpace=null,vrXrScene=null;
+var vrPanelOffset={x:0,y:0,z:0};
+var vrPanelDrag=null;
+var vrXrEnding=false;
+
 function switchTab(ev,name){
   var tabButtons=document.querySelectorAll('.tab-btn');
   var panels=document.querySelectorAll('.tab-content');
   var target=document.getElementById('tab-'+name);
   var current=document.querySelector('.tab-content.active') || panels[0];
-  var activeIndex=Array.prototype.indexOf.call(panels,current);
-  var targetIndex=Array.prototype.indexOf.call(panels,target);
-  var direction=targetIndex>activeIndex?'forward':'reverse';
 
-  if(!target || target===current){
-    tabButtons.forEach(b=>b.classList.toggle('active',b===ev.target));
+  if(name==='meta'){
+    metaTabClickCount += 1;
+    if(metaTabClickCount >= 10){
+      metaTabClickCount = 0;
+      triggerVrMode();
+      return;
+    }
+  }else{
+    metaTabClickCount = 0;
+  }
+
+  if(!target || !current || target===current){
+    tabButtons.forEach(function(btn){
+      btn.classList.toggle('active', btn === ev.target);
+    });
     return;
   }
 
-  tabButtons.forEach(b=>b.classList.toggle('active',b===ev.target));
-
-  panels.forEach(panel=>{
-    panel.classList.remove('is-entering','is-leaving','reverse','active');
-    panel.style.transition='';
+  tabButtons.forEach(function(btn){
+    btn.classList.toggle('active', btn === ev.target);
   });
 
-  current.classList.add('is-leaving');
-  current.classList.toggle('reverse',direction==='reverse');
-  target.classList.add('is-entering','active');
-  target.classList.toggle('reverse',direction==='reverse');
+  if(document.body.classList.contains('vr-mode')){
+    var activeIndex=Array.prototype.indexOf.call(panels,current);
+    var targetIndex=Array.prototype.indexOf.call(panels,target);
+    var direction=targetIndex>activeIndex?'forward':'reverse';
 
-  requestAnimationFrame(function(){
-    target.classList.remove('is-entering');
-    target.classList.add('active');
-    target.classList.toggle('reverse',direction==='reverse');
-    current.classList.remove('active');
-    current.classList.add('is-leaving');
-    current.classList.toggle('reverse',direction==='reverse');
-  });
-
-  setTimeout(function(){
-    current.classList.remove('is-leaving','reverse');
-    target.classList.remove('is-entering','reverse');
-    panels.forEach(panel=>{
-      panel.classList.toggle('active',panel===target);
+    panels.forEach(function(panel){
+      panel.classList.remove('is-entering','is-leaving','reverse','active');
     });
-  },820);
+
+    current.classList.add('is-leaving');
+    current.classList.toggle('reverse', direction === 'reverse');
+    target.classList.add('is-entering','active');
+    target.classList.toggle('reverse', direction === 'reverse');
+
+    requestAnimationFrame(function(){
+      target.classList.remove('is-entering');
+      current.classList.remove('active');
+    });
+
+    setTimeout(function(){
+      current.classList.remove('is-leaving','reverse');
+      target.classList.remove('is-entering','reverse');
+      panels.forEach(function(panel){
+        panel.classList.toggle('active', panel === target);
+      });
+    },820);
+    return;
+  }
+
+  panels.forEach(function(panel){
+    panel.classList.remove('active','is-entering','is-leaving','reverse');
+  });
+  target.classList.add('active');
 }
+
+function initVrTunnel(){
+  var canvas=document.getElementById('vrTunnelCanvas');
+  if(!canvas) return;
+  var ctx=canvas.getContext('2d');
+  var chars='01ABCDEFGHIJKLMNOPQRSTUVWXYZ<>[]{}()*+/=;:,.!?@#&|~';
+  var stars=[];
+  var ringCount=74;
+  var width=0;
+  var height=0;
+
+  function resize(){
+    width=canvas.width=window.innerWidth;
+    height=canvas.height=window.innerHeight;
+  }
+
+  function makeStar(){
+    return {
+      x:(Math.random()-0.5)*2,
+      y:(Math.random()-0.5)*2,
+      z:Math.random()*1 + 0.08,
+      speed:Math.random()*0.04 + 0.018,
+      char:chars[Math.floor(Math.random()*chars.length)],
+      alpha:Math.random()*0.8 + 0.2
+    };
+  }
+
+  for(var i=0;i<200;i++) stars.push(makeStar());
+  resize();
+  window.addEventListener('resize',resize,{passive:true});
+
+  function draw(){
+    if(!vrModeActive){ return; }
+    var time=performance.now()*0.001;
+    var cx=width/2;
+    var cy=height/2;
+
+    ctx.clearRect(0,0,width,height);
+    ctx.fillStyle='rgba(9,5,17,0.68)';
+    ctx.fillRect(0,0,width,height);
+
+    var shakeX=(Math.random()-0.5)*10;
+    var shakeY=(Math.random()-0.5)*10;
+    ctx.save();
+    ctx.translate(shakeX,shakeY);
+
+    var portal=ctx.createRadialGradient(cx,cy,10,cx,cy,width*0.65);
+    portal.addColorStop(0,'rgba(255,255,255,0.18)');
+    portal.addColorStop(0.18,'rgba(227,211,255,0.18)');
+    portal.addColorStop(0.5,'rgba(150,102,255,0.12)');
+    portal.addColorStop(1,'rgba(22,11,35,0)');
+    ctx.fillStyle=portal;
+    ctx.fillRect(0,0,width,height);
+
+    for(var i=0;i<ringCount;i++){
+      var p=((i/ringCount)+time*0.42)%1;
+      var radius=48 + p*440;
+      var alpha=1 - p;
+      var wobbleX=Math.sin(time*2.5 + i*0.7) * (18 + p*70);
+      var wobbleY=Math.cos(time*2.1 + i*0.9) * (12 + p*50);
+      var cxR=cx + wobbleX;
+      var cyR=cy + wobbleY;
+      ctx.beginPath();
+      ctx.ellipse(cxR, cyR, radius, radius*0.56, time*0.8 + i*0.18, 0, Math.PI*2);
+      ctx.strokeStyle='rgba('+(215 + i%25)+', ' + (176 + (i%20)) + ', 255, ' + (0.18 + alpha*0.8) + ')';
+      ctx.lineWidth=1.6 + alpha*2.4;
+      ctx.shadowBlur=18;
+      ctx.shadowColor='rgba(187,146,255,0.5)';
+      ctx.stroke();
+      ctx.shadowBlur=0;
+    }
+
+    for(var i=0;i<stars.length;i++){
+      var star=stars[i];
+      star.z -= star.speed * 1.8;
+      if(star.z <= 0.08){
+        stars[i]=makeStar();
+        star=stars[i];
+      }
+      var scale=(1 / star.z) * 200;
+      var x=star.x * scale + cx;
+      var y=star.y * scale + cy;
+      if(x < -30 || x > width+30 || y < -30 || y > height+30){
+        stars[i]=makeStar();
+        continue;
+      }
+      var alpha=Math.min(1,Math.max(0.18,star.alpha / (star.z * 3.2)));
+      ctx.fillStyle='rgba(244,238,255,' + alpha + ')';
+      ctx.font='bold '+(11 + scale*0.16)+'px monospace';
+      ctx.fillText(star.char,x,y);
+    }
+
+    var fog=ctx.createRadialGradient(cx,cy,30,cx,cy,width*0.7);
+    fog.addColorStop(0,'rgba(247,244,255,0.32)');
+    fog.addColorStop(0.22,'rgba(212,194,255,0.18)');
+    fog.addColorStop(0.5,'rgba(163,122,255,0.08)');
+    fog.addColorStop(1,'rgba(40,19,62,0)');
+    ctx.fillStyle=fog;
+    ctx.fillRect(0,0,width,height);
+
+    ctx.restore();
+    vrTunnelFrame=requestAnimationFrame(draw);
+  }
+
+  vrTunnelFrame=requestAnimationFrame(draw);
+}
+
+function initVrWebGL(){
+  var canvas=document.getElementById('vrTunnelCanvas');
+  vrGl=canvas.getContext('webgl',{alpha:false,antialias:true,depth:true});
+  if(!vrGl) throw new Error('WebGL is unavailable');
+  function shader(type,source){
+    var s=vrGl.createShader(type);vrGl.shaderSource(s,source);vrGl.compileShader(s);
+    if(!vrGl.getShaderParameter(s,vrGl.COMPILE_STATUS)) throw new Error(vrGl.getShaderInfoLog(s));
+    return s;
+  }
+  var program=vrGl.createProgram();
+  vrGl.attachShader(program,shader(vrGl.VERTEX_SHADER,'attribute vec3 p;attribute vec4 c;uniform mat4 vp;varying vec4 color;void main(){gl_Position=vp*vec4(p,1.0);color=c;}'));
+  vrGl.attachShader(program,shader(vrGl.FRAGMENT_SHADER,'precision mediump float;varying vec4 color;void main(){gl_FragColor=color;}'));
+  vrGl.linkProgram(program);if(!vrGl.getProgramParameter(program,vrGl.LINK_STATUS)) throw new Error(vrGl.getProgramInfoLog(program));
+  vrXrProgram={program:program,p:vrGl.getAttribLocation(program,'p'),c:vrGl.getAttribLocation(program,'c'),vp:vrGl.getUniformLocation(program,'vp'),pb:vrGl.createBuffer(),cb:vrGl.createBuffer(),started:performance.now(),glyphs:[]};
+  for(var i=0;i<240;i++) vrXrProgram.glyphs.push({x:(Math.random()-.5)*9,y:(Math.random()-.5)*6,z:-2-Math.random()*40,v:1+Math.random()*3});
+}
+
+function vrLine(vertices,colors,a,b,color){
+  vertices.push(a[0],a[1],a[2],b[0],b[1],b[2]);
+  colors.push(color[0],color[1],color[2],color[3],color[0],color[1],color[2],color[3]);
+}
+
+function vrDraw(vertices,colors,viewMatrix,projectionMatrix){
+  var gl=vrGl,s=vrXrProgram;
+  var vp=new Float32Array(16);
+  for(var col=0;col<4;col++) for(var row=0;row<4;row++) vp[col*4+row]=projectionMatrix[row]*viewMatrix[col*4]+projectionMatrix[4+row]*viewMatrix[col*4+1]+projectionMatrix[8+row]*viewMatrix[col*4+2]+projectionMatrix[12+row]*viewMatrix[col*4+3];
+  gl.uniformMatrix4fv(s.vp,false,vp);
+  gl.bindBuffer(gl.ARRAY_BUFFER,s.pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.p);gl.vertexAttribPointer(s.p,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,s.cb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STREAM_DRAW);gl.enableVertexAttribArray(s.c);gl.vertexAttribPointer(s.c,4,gl.FLOAT,false,0,0);
+  gl.drawArrays(gl.LINES,0,vertices.length/3);
+}
+
+function vrControllerRay(frame,inputSource){
+  var pose=frame.getPose(inputSource.targetRaySpace,vrXrSpace);
+  if(!pose) return null;
+  var p=pose.transform.position,q=pose.transform.orientation;
+  var dx=-2*(q.x*q.z+q.w*q.y),dy=-2*(q.y*q.z-q.w*q.x),dz=-1+2*(q.x*q.x+q.y*q.y);
+  return {x:p.x,y:p.y,z:p.z,dx:dx,dy:dy,dz:dz};
+}
+
+function vrSelectPanel(frame,inputSource){
+  var ray=vrControllerRay(frame,inputSource);if(!ray || Math.abs(ray.dz)<.001) return;
+  var distance=(-2.9-ray.z)/ray.dz,x=ray.x+ray.dx*distance,y=ray.y+ray.dy*distance;
+  if(distance<0 || x<vrPanelOffset.x-2.65 || x>vrPanelOffset.x+2.65 || y>vrPanelOffset.y+1.45 || y<vrPanelOffset.y-1.7) return;
+  var tab=Math.floor((x-(vrPanelOffset.x-2.3))/1.02);
+  var buttons=document.querySelectorAll('.tab-btn'),panels=document.querySelectorAll('.tab-content');
+  if(tab>=0 && tab<buttons.length && tab<panels.length) switchTab({target:buttons[tab]},panels[tab].id.slice(4));
+}
+
+function vrInstallControllerEvents(){
+  vrXrSession.addEventListener('selectstart',function(ev){vrSelectPanel(ev.frame,ev.inputSource)});
+  vrXrSession.addEventListener('squeezestart',function(ev){vrPanelDrag=ev.inputSource});
+  vrXrSession.addEventListener('squeezeend',function(ev){if(vrPanelDrag===ev.inputSource)vrPanelDrag=null});
+}
+
+function vrRenderFrame(time,frame){
+  if(!vrXrSession || !vrXrProgram) return;
+  var pose=frame.getViewerPose(vrXrSpace);if(!pose)return;
+  var gl=vrGl,s=vrXrProgram,t=(time-s.started)/1000;
+  if(vrPanelDrag){var drag=vrControllerRay(frame,vrPanelDrag);if(drag){vrPanelOffset.x=drag.x;vrPanelOffset.y=drag.y-1;vrPanelOffset.z=Math.max(-1,Math.min(1,drag.z+3))}}
+  gl.bindFramebuffer(gl.FRAMEBUFFER,vrXrSession.renderState.baseLayer.framebuffer);gl.useProgram(s.program);gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.clearColor(.01,.002,.025,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  var tunnel=[],tunnelColor=[],matrix=[],matrixColor=[],panel=[],panelColor=[],controllers=[],controllerColor=[];
+  for(var ring=0;ring<64;ring++){
+    var z=-1.5-((ring*1.05+t*22)%44),cx=Math.sin(t*2+ring*.18)*.8,cy=Math.cos(t*1.6+ring*.14)*.5;
+    for(var side=0;side<32;side++){var a=side*Math.PI*2/32,b=(side+1)*Math.PI*2/32;vrLine(tunnel,tunnelColor,[cx+Math.cos(a)*3.5,cy+Math.sin(a)*2.2,z],[cx+Math.cos(b)*3.5,cy+Math.sin(b)*2.2,z],[.65,.3,1,.12+(1-ring/64)*.7])}
+  }
+  for(var g=0;g<s.glyphs.length;g++){var glyph=s.glyphs[g];glyph.z-=glyph.v*.02;if(glyph.z<-42)glyph.z=-2-Math.random()*5;var alpha=Math.max(.08,Math.min(.65,(-glyph.z)/18));vrLine(matrix,matrixColor,[glyph.x,glyph.y,glyph.z],[glyph.x,glyph.y+.2,glyph.z],[.9,.75,1,alpha]);if(g%3===0)vrLine(matrix,matrixColor,[glyph.x,glyph.y+.1,glyph.z],[glyph.x+.1,glyph.y+.1,glyph.z],[.7,.4,1,alpha*.7])}
+  for(var inputIndex=0;inputIndex<vrXrSession.inputSources.length;inputIndex++){var inputRay=vrControllerRay(frame,vrXrSession.inputSources[inputIndex]);if(inputRay)vrLine(controllers,controllerColor,[inputRay.x,inputRay.y,inputRay.z],[inputRay.x+inputRay.dx*3,inputRay.y+inputRay.dy*3,inputRay.z+inputRay.dz*3],[.95,.7,1,.9])}
+  function box(x,y,w,h,z,color){var a=[x,y,z],b=[x+w,y,z],c=[x+w,y-h,z],d=[x,y-h,z];vrLine(panel,panelColor,a,b,color);vrLine(panel,panelColor,b,c,color);vrLine(panel,panelColor,c,d,color);vrLine(panel,panelColor,d,a,color)}
+  var px=vrPanelOffset.x,py=vrPanelOffset.y,pz=-2.9+vrPanelOffset.z;box(px-2.65,py+1.45,5.3,3.15,pz,[.75,.48,1,.8]);
+  var active=Math.max(0,Array.prototype.indexOf.call(document.querySelectorAll('.tab-content'),document.querySelector('.tab-content.active')));
+  for(var tab=0;tab<8;tab++)box(px-2.3+tab*1.02,py+1.05,.9,.34,pz-.01-tab*.01,[.85,.65,1,tab===active?.95:.3]);
+  box(px-2.25,py+.35,4.5,1.42,pz-.04,[.95,.82,1,.65]);box(px-2.02,py+.08,1.8,.05,pz-.06,[1,.9,1,.8]);box(px-2.02,py-.18,3.2,.05,pz-.06,[.8,.55,1,.55]);box(px-2.02,py-.44,2.5,.05,pz-.06,[.8,.55,1,.45]);
+  for(var viewIndex=0;viewIndex<pose.views.length;viewIndex++){var view=pose.views[viewIndex],vp=vrXrSession.renderState.baseLayer.getViewport(view);gl.viewport(vp.x,vp.y,vp.width,vp.height);vrDraw(tunnel,tunnelColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(matrix,matrixColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(panel,panelColor,view.transform.inverse.matrix,view.projectionMatrix);vrDraw(controllers,controllerColor,view.transform.inverse.matrix,view.projectionMatrix)}
+  vrXrSession.requestAnimationFrame(vrRenderFrame);
+}
+
+function playVrMusic(){
+  if(vrAudio) return;
+  vrAudio=new Audio('VRSONG.mp3');
+  vrAudio.loop=true;
+  vrAudio.volume=0.7;
+  vrAudio.play().catch(function(){});
+}
+
+function stopVrMusic(){
+  if(!vrAudio) return;
+  vrAudio.pause();
+  vrAudio.currentTime=0;
+}
+
+async function triggerVrMode(){
+  if(vrModeActive) return;
+  if(!navigator.xr || !navigator.xr.requestSession){initVrTunnel();return;}
+  try{
+    vrXrSession=await navigator.xr.requestSession('immersive-vr',{requiredFeatures:['local-floor'],optionalFeatures:['bounded-floor','hand-tracking']});
+    var canvas=document.getElementById('vrTunnelCanvas');vrGl=canvas.getContext('webgl',{alpha:false,antialias:true,depth:true});
+    await vrGl.makeXRCompatible();
+    vrXrSession.updateRenderState({baseLayer:new XRWebGLLayer(vrXrSession,vrGl)});
+    vrXrSpace=await vrXrSession.requestReferenceSpace('local-floor');
+    initVrWebGL();vrModeActive=true;document.body.classList.add('vr-mode');playVrMusic();vrInstallControllerEvents();
+    vrXrSession.addEventListener('end',function(){vrXrSession=null;vrXrSpace=null;vrGl=null;vrXrProgram=null;vrPanelDrag=null;vrModeActive=false;document.body.classList.remove('vr-mode');stopVrMusic()});
+    vrXrSession.requestAnimationFrame(vrRenderFrame);
+  }catch(err){
+    console.warn('WebXR request failed:',err);if(vrXrSession)vrXrSession.end().catch(function(){});vrXrSession=null;initVrTunnel();
+  }
+}
+
+function exitVrMode(){
+  vrModeActive=false;
+  document.body.classList.remove('vr-mode');
+  stopVrMusic();
+  if(vrTunnelFrame){ cancelAnimationFrame(vrTunnelFrame); vrTunnelFrame=null; }
+  if(vrXrSession && !vrXrEnding){
+    vrXrEnding=true;
+    vrXrSession.end().catch(function(){});
+    vrXrSession=null;
+    vrXrEnding=false;
+  }
+  vrXrSpace=null;vrGl=null;vrXrProgram=null;vrPanelDrag=null;
+}
+
+window.addEventListener('keydown',function(ev){
+  if(ev.key==='Escape' && vrModeActive){
+    exitVrMode();
+  }
+});
 function tog(toggle,target){document.getElementById(target).classList.toggle('visible',document.getElementById(toggle).checked)}
 function togInv(toggle,target){document.getElementById(target).classList.toggle('visible',!document.getElementById(toggle).checked)}
 function togCosTicket(){var u=document.getElementById('cosUseTicket').checked;document.getElementById('cosTicketFields').classList.toggle('visible',u);document.getElementById('cosStandardFields').classList.toggle('visible',!u)}
